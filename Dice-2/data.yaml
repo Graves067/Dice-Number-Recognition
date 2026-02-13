@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 6
+names: ['d10', 'd12', 'd20', 'd4', 'd6', 'd8']
+
+roboflow:
+  workspace: object-detection-using-roboflow-and-active-learning
+  project: dice-03h7s
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/object-detection-using-roboflow-and-active-learning/dice-03h7s/dataset/2
