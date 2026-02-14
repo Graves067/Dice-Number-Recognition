@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+dice-env/
+.venv/
+venv/
+
+# YOLO training runs
+runs/
+
+# Downloaded model weights
+*.pt
+
+# Roboflow dataset
+Dice-2/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
