@@ -1,0 +1,23 @@
+# Virtual environments
+dice-env/
+.venv/
+
+# YOLO training runs (keep best model)
+runs/
+
+# Downloaded weights
+*.pt
+
+# Dataset
+Dice-2/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
