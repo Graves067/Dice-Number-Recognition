@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 import easyocr as ocr
-from config import OCR_CONFIDENCE, OCR_GPU
+from src.config import OCR_CONFIDENCE, OCR_GPU
 
 class NumberDetection:
     """
