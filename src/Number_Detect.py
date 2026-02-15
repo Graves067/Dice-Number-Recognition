@@ -43,7 +43,7 @@ class NumberDetection:
         # Saturation'
         saturation = hsv[:, :, 1]
 
-        # Heavy blur BEFORE threshold — removes die texture noise
+        #  removes die texture noise
         blur = cv.GaussianBlur(saturation, (5, 5), 0)
 
         # Otsu threshold on the blurred image
