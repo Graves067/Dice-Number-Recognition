@@ -1,8 +1,12 @@
 import cv2 as cv
 from ultralytics import YOLO
 from Number_Detect import NumberDetection
+import os
+import time
+from collections import defaultdict
 
 #update to class based obj detection reference
+
 
 class DiceDetector:
     def __init__(self, model_path: str, confidence: float = 0.6):
@@ -10,6 +14,8 @@ class DiceDetector:
         self.confidence = confidence
         self.camera = None
         self.number_detector = NumberDetection()
+        self.save_dir = r"src\Incoming"
+        os.makedirs(self.save_dir, exist_ok=True)
 
     def start_camera(self, width: int = 640, height: int = 480, device: int = 0):
         self.camera = cv.VideoCapture(device)
@@ -21,7 +27,7 @@ class DiceDetector:
             self.camera.release()
         cv.destroyAllWindows()
 
-    def _annotate_frame(self, frame, results):
+    def annotate_frame(self, frame, results):
         for result in results:
             for box in result.boxes:
 
@@ -82,3 +88,26 @@ class DiceDetector:
                     break
         finally:
             self.stop_camera()
+    
+    def save_detection(self, frame, crop, label, confidence, number=None):
+        """Save cropped dice image with cooldown protection."""
+
+        if confidence < self.confidence:
+            return
+
+        now = time.time()
+        if now - self._last_saved.get(label, 0) < self.save_cooldown:
+            return
+        self._last_saved[label] = now
+
+        # filename logic
+        self._save_counters[label] += 1
+
+        if number:
+            filename = f"{label}_{number}_{self._save_counters[label]:03d}.jpg"
+        else:
+            filename = f"{label}_{self._save_counters[label]:03d}.jpg"
+
+        path = os.path.join(self.save_dir, filename)
+        cv.imwrite(path, crop)
+        print("Saved:", path)
