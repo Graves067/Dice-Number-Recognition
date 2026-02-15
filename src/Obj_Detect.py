@@ -2,6 +2,7 @@ import cv2 as cv
 from ultralytics import YOLO
 from Number_Detect import NumberDetection
 
+#update to class based obj detection reference
 
 class DiceDetector:
     def __init__(self, model_path: str, confidence: float = 0.6):
