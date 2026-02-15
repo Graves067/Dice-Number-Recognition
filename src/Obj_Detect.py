@@ -5,6 +5,7 @@ import os
 import time
 from collections import defaultdict
 
+#update to class based obj detection reference
 
 
 class DiceDetector:
