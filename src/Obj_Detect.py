@@ -1,51 +1,83 @@
 import cv2 as cv
-import easyocr
-import os
-from ultralytics import YOLO 
+from ultralytics import YOLO
+from Number_Detect import NumberDetection
 
 
-if __name__ == '__main__':
+class DiceDetector:
+    def __init__(self, model_path: str, confidence: float = 0.6):
+        self.model = YOLO(model_path)
+        self.confidence = confidence
+        self.camera = None
+        self.number_detector = NumberDetection()
 
-    model = YOLO(r"runs/detect/dice_detector9/weights/best.pt")
+    def start_camera(self, width: int = 640, height: int = 480, device: int = 0):
+        self.camera = cv.VideoCapture(device)
+        self.camera.set(cv.CAP_PROP_FRAME_WIDTH, width)
+        self.camera.set(cv.CAP_PROP_FRAME_HEIGHT, height)
 
-    camera = cv.VideoCapture(0)
-    camera.set(cv.CAP_PROP_FRAME_WIDTH, 640)
-    camera.set(cv.CAP_PROP_FRAME_HEIGHT, 480)
+    def stop_camera(self):
+        if self.camera:
+            self.camera.release()
+        cv.destroyAllWindows()
 
-    while True:
-
-        ret, frame = camera.read()
-
-        if not ret:
-            print("Failed to grab Frame")
-            break
-
-
-        results = model(frame, conf = 0.6, verbose = False)
-
+    def _annotate_frame(self, frame, results):
         for result in results:
             for box in result.boxes:
 
                 cls_id = int(box.cls)
-                cls_name = model.names[cls_id]
+                cls_name = self.model.names[cls_id]
                 confidence = float(box.conf)
-                x1,y1,x2,y2 = map(int, box.xyxy[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-                cv.rectangle(frame, (x1,y1), (x2,y2),(0,255,0),2)
+                # clamp coordinates to frame boundaries to prevent empty/invalid crops
+                x1 = max(0, x1)
+                y1 = max(0, y1)
+                x2 = min(frame.shape[1], x2)
+                y2 = min(frame.shape[0], y2)
+
+                #crop the die face from the frame
+                crop = frame[y1:y2, x1:x2]
+
+                #guard against empty crops at frame edges
+                if crop.size == 0:
+                    continue
+
+                #run OCR on the crop and get the face value
+                number, ocr_conf = self.number_detector.read(crop)
+
+                cv.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                # added OCR result to label if a number was detected
                 label = f"{cls_name.upper()}  {confidence:.0%}"
+                if number:
+                    label += f" | {number} ({ocr_conf:.0%})"
+
                 cv.putText(frame, label, (x1, y1 - 10),
-                            cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                                # Draw center dot
+                        cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
                 cx = (x1 + x2) // 2
                 cy = (y1 + y2) // 2
                 cv.circle(frame, (cx, cy), 5, (0, 255, 0), -1)
 
-       
-        cv.imshow("Dice Detector", frame)
+        return frame
 
-        # Quit on Q key
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            break
+    def run(self):
+        if not self.camera or not self.camera.isOpened():
+            raise RuntimeError("Camera is not started. Call start_camera() first.")
 
-    camera.release()
-    cv.destroyAllWindows()
+        try:
+            while True:
+                ret, frame = self.camera.read()
+                if not ret:
+                    print("Failed to grab frame")
+                    break
+
+                results = self.model(frame, conf=self.confidence, verbose=False)
+                frame = self._annotate_frame(frame, results)
+
+                cv.imshow("Dice Detector", frame)
+
+                if cv.waitKey(1) & 0xFF == ord('q'):
+                    break
+        finally:
+            self.stop_camera()
