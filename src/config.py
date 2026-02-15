@@ -8,6 +8,6 @@ PADDING        = 20     #  padding for around bounding box
 
 # OCR settings
 OCR_CONFIDENCE = 0.5    # minimum OCR confidence 
-OCR_GPU        = False  # GPU accelerated OCR
+OCR_GPU        = True  # GPU accelerated OCR
 
 #test for git commit
