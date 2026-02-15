@@ -1,5 +1,8 @@
-import cv2 as cv  
+import cv2 as cv
+import easyocr
+import os
 from ultralytics import YOLO 
+
 
 if __name__ == '__main__':
 
