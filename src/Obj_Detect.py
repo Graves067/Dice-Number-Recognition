@@ -15,6 +15,12 @@ class DiceDetector:
         self.camera = None
         self.number_detector = NumberDetection()
         self.save_dir = r"src\Incoming"
+        self.save_counters = defaultdict(int)
+        self.last_saved = {}
+        self.save_cooldown = 1.5
+        self.seen_centers = []
+        self.center_threshold = 40  # pixels (same die radius)
+
         os.makedirs(self.save_dir, exist_ok=True)
 
     def start_camera(self, width: int = 640, height: int = 480, device: int = 0):
@@ -52,6 +58,9 @@ class DiceDetector:
                 #run OCR on the crop and get the face value
                 number, ocr_conf = self.number_detector.read(crop)
 
+                if not self.is_new_object(x1, y1, x2, y2):
+                    self.save_detection(frame, crop, cls_name, confidence, number)
+
                 cv.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
                 # added OCR result to label if a number was detected
@@ -80,7 +89,7 @@ class DiceDetector:
                     break
 
                 results = self.model(frame, conf=self.confidence, verbose=False)
-                frame = self._annotate_frame(frame, results)
+                frame = self.annotate_frame(frame, results)
 
                 cv.imshow("Dice Detector", frame)
 
@@ -96,18 +105,30 @@ class DiceDetector:
             return
 
         now = time.time()
-        if now - self._last_saved.get(label, 0) < self.save_cooldown:
+        if now - self.last_saved.get(label, 0) < self.save_cooldown:
             return
-        self._last_saved[label] = now
+        self.last_saved[label] = now
 
         # filename logic
-        self._save_counters[label] += 1
+        self.save_counters[label] += 1
 
         if number:
-            filename = f"{label}_{number}_{self._save_counters[label]:03d}.jpg"
+            filename = f"{label}_{number}_{self.save_counters[label]:03d}.jpg"
         else:
-            filename = f"{label}_{self._save_counters[label]:03d}.jpg"
+            filename = f"{label}_{self.save_counters[label]:03d}.jpg"
 
         path = os.path.join(self.save_dir, filename)
         cv.imwrite(path, crop)
         print("Saved:", path)
+
+    def is_new_object(self, x1, y1, x2, y2):
+        cx = (x1 + x2) // 2
+        cy = (y1 + y2) // 2
+
+        for px, py in self.seen_centers:
+            if abs(cx - px) < self.center_threshold and abs(cy - py) < self.center_threshold:
+                return False  # same die
+
+        self.seen_centers.append((cx, cy))
+        return True
+
