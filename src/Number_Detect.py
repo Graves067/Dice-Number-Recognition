@@ -1,6 +1,8 @@
+import time
 import cv2 as cv
 import numpy as np
 import easyocr as ocr
+import os
 from config import OCR_CONFIDENCE, OCR_GPU
 
 class NumberDetection:
@@ -16,6 +18,7 @@ class NumberDetection:
         print("Loading EasyOCR...")
         self.reader = ocr.Reader(['en'], gpu=OCR_GPU)
         print("EasyOCR ready!")
+        self.incoming_dir = r"src\Incoming"
 
     def read(self, crop):
         """
@@ -81,3 +84,36 @@ class NumberDetection:
             return None, confidence
 
         return text, confidence
+    
+
+    def watch_folder(self, poll_interval: float = 0.5):
+        """Continuously watch incoming folder and OCR any new images."""
+        processed = set()
+
+        print(f"Watching '{self.incoming_dir}' for new images...")
+
+        image_exts = {".jpg", ".jpeg", ".png", ".bmp"}
+
+        while True:
+            files = [f for f in os.listdir(self.incoming_dir)
+                 if os.path.splitext(f)[1].lower() in image_exts]
+
+            for filename in sorted(files):
+                if filename in processed:
+                    continue
+
+                path = os.path.join(self.incoming_dir, filename)
+                img = cv.imread(path)
+                if img is None:
+                    continue
+
+                number, confidence = self.read(img)
+
+                if number:
+                    print(f"{filename:40s} -> {number}  (conf: {confidence:.0%})")
+                else:
+                    print(f"{filename:40s} -> No number detected  (conf: {confidence:.0%})")
+
+                processed.add(filename)
+
+            time.sleep(poll_interval)
